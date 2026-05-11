@@ -4,6 +4,8 @@ from datetime import datetime, time
 from typing import List, Tuple, Optional
 import logging
 
+from services.logger import log_db_operation
+
 logging.basicConfig(level=logging.INFO)
 
 class ReminderEngine:
@@ -59,6 +61,19 @@ class ReminderEngine:
                     (user_id, name, period, reminder_time, day, comment, due_at),
                 )
                 conn.commit()
+                
+                new_record = {
+                    "user_id": user_id,
+                    "name": name,
+                    "period": period,
+                    "reminder_time": reminder_time,
+                    "day": day,
+                    "comment": comment,
+                    "active": 1,
+                    "due_at": due_at
+                }
+                log_db_operation("reminders", "add", old_record=None, new_record=new_record)
+                
             return True
         except Exception as e:
             logging.error(f"Error adding reminder: {e}")
@@ -76,21 +91,65 @@ class ReminderEngine:
     def deactivate_reminder(self, user_id: str, name: str) -> bool:
         """Mark a reminder as inactive for a user. / Помечает напоминание пользователя как неактивное."""
         with sqlite3.connect(self.db_path) as conn:
+            # Get old record
+            cursor = conn.execute(
+                "SELECT user_id, name, period, reminder_time, day, comment, active, due_at FROM reminders WHERE user_id = ? AND name = ?",
+                (user_id, name)
+            )
+            old_record = cursor.fetchone()
+            
             cursor = conn.execute(
                 "UPDATE reminders SET active = 0 WHERE user_id = ? AND name = ?",
                 (user_id, name)
             )
             conn.commit()
+            
+            if cursor.rowcount > 0 and old_record:
+                old_dict = {
+                    "user_id": old_record[0],
+                    "name": old_record[1],
+                    "period": old_record[2],
+                    "reminder_time": old_record[3],
+                    "day": old_record[4],
+                    "comment": old_record[5],
+                    "active": old_record[6],
+                    "due_at": old_record[7]
+                }
+                new_dict = old_dict.copy()
+                new_dict["active"] = 0
+                log_db_operation("reminders", "edit", old_record=old_dict, new_record=new_dict)
+            
             return cursor.rowcount > 0
 
     def delete_reminder(self, user_id: str, name: str) -> bool:
         """Delete a reminder by name for a user. / Удаляет напоминание по имени для пользователя."""
         with sqlite3.connect(self.db_path) as conn:
+            # Get old record
+            cursor = conn.execute(
+                "SELECT user_id, name, period, reminder_time, day, comment, active, due_at FROM reminders WHERE user_id = ? AND name = ?",
+                (user_id, name)
+            )
+            old_record = cursor.fetchone()
+            
             cursor = conn.execute(
                 "DELETE FROM reminders WHERE user_id = ? AND name = ?",
                 (user_id, name)
             )
             conn.commit()
+            
+            if cursor.rowcount > 0 and old_record:
+                old_dict = {
+                    "user_id": old_record[0],
+                    "name": old_record[1],
+                    "period": old_record[2],
+                    "reminder_time": old_record[3],
+                    "day": old_record[4],
+                    "comment": old_record[5],
+                    "active": old_record[6],
+                    "due_at": old_record[7]
+                }
+                log_db_operation("reminders", "delete", old_record=old_dict)
+            
             return cursor.rowcount > 0
 
     async def start(self):
@@ -167,6 +226,21 @@ class ReminderEngine:
                     self._sent_reminder_ids.add(reminder_id)
                     if period == "once":
                         with sqlite3.connect(self.db_path) as conn:
+                            # Get old record before deletion
+                            old_cursor = conn.execute("SELECT user_id, name, period, reminder_time, day, comment, active, due_at FROM reminders WHERE id = ?", (reminder_id,))
+                            old_row = old_cursor.fetchone()
+                            if old_row:
+                                old_dict = {
+                                    "user_id": old_row[0],
+                                    "name": old_row[1],
+                                    "period": old_row[2],
+                                    "reminder_time": old_row[3],
+                                    "day": old_row[4],
+                                    "comment": old_row[5],
+                                    "active": old_row[6],
+                                    "due_at": old_row[7]
+                                }
+                                log_db_operation("reminders", "delete", old_record=old_dict)
                             conn.execute("DELETE FROM reminders WHERE id = ?", (reminder_id,))
                             conn.commit()
                 except Exception as e:
