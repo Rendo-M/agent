@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# virtual environments
+.venv/
+venv/
+ENV/
+env/
+**/env/
+**/venv/
+
+# distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Python environment files
+Pipfile.lock
+poetry.lock
+
+# dotenv
+.env
+
+# logs
+*.log
+
+# system files
+.DS_Store
+Thumbs.db
+
+# bot cache / session storage
+*.db
+*.sqlite
+
+# pycache
+**/__pycache__/
+**/*.py[cod]
+
+# local configuration
+*.local
