@@ -88,6 +88,38 @@ class ReminderEngine:
             )
             return cursor.fetchall()
 
+    def search_reminders(self, user_id: str, query: str) -> str:
+        """Search for reminders by name or comment. / Ищет напоминания по названию или комментарию."""
+        query_lower = query.lower()
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                "SELECT name, comment, period, reminder_time, day FROM reminders WHERE user_id = ? AND active = 1",
+                (user_id,)
+            )
+            results = cursor.fetchall()
+        
+        # Filter results with case-insensitive search
+        matching_reminders = []
+        for name, comment, period, reminder_time, day in results:
+            if query_lower in (name if name else "").lower() or query_lower in (comment if comment else "").lower():
+                matching_reminders.append((name, comment, period, reminder_time, day))
+        
+        if not matching_reminders:
+            return "Напоминания не найдены."
+        
+        reminders_text = []
+        for name, comment, period, reminder_time, day in matching_reminders:
+            time_info = reminder_time
+            if period == "weekly" and day:
+                time_info = f"{reminder_time} (день недели: {day})"
+            elif period == "monthly" and day:
+                time_info = f"{reminder_time} (день месяца: {day})"
+            
+            comment_text = f": {comment}" if comment else ""
+            reminders_text.append(f"- {name} ({period} в {time_info}){comment_text}")
+        
+        return "\n".join(reminders_text)
+
     def deactivate_reminder(self, user_id: str, name: str) -> bool:
         """Mark a reminder as inactive for a user. / Помечает напоминание пользователя как неактивное."""
         with sqlite3.connect(self.db_path) as conn:
