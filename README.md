@@ -1,57 +1,135 @@
-# Agent Project
+# Telegram AI Agent Bot
 
-This repository contains a small asynchronous Telegram bot and API backend with reminder functionality.
-
-## Quick Start
-
-1. Install dependencies: `pip install -r requirements.txt`
-2. Set `BOT_TOKEN` in `.env`
-3. Start API: `uvicorn api.main:app --reload --host 127.0.0.1 --port 8000`
-4. Start bot: `python bot/bot.py`
-
-## Documentation
-
-- [Architecture](docs/architecture.md) - System design and components
-- [Setup Guide](docs/setup.md) - Detailed installation and configuration
-- [Bot Commands](docs/bot.md) - Telegram bot usage
-- [API Reference](docs/api.md) - REST API documentation
-- [Database](docs/database.md) - SQLite schema and operations
-
-### Документация на Русском
-
-- [Архитектура](docs/ru/architecture.md) - Дизайн системы и компоненты
-- [Руководство по Установке](docs/ru/setup.md) - Детальная установка и конфигурация
-- [Команды Бота](docs/ru/bot.md) - Использование Telegram бота
-- [API Ссылка](docs/ru/api.md) - Документация REST API
-- [База Данных](docs/ru/database.md) - Схема SQLite и операции
-
-## Structure
-
-- `api/main.py` - FastAPI service
-- `agent/` - AI agent logic (core.py, llm.py)
-- `bot/` - Telegram bot package
-  - `bot.py` - Main bot application
-  - `client.py` - HTTP client wrapper
-  - `help_generator.py` - Help text generator
-- `services/` - Additional services package
-  - `reminders.py` - Reminder engine
-- `docs/` - Documentation (English + Russian)
-- `requirements.txt` - Dependencies
+A comprehensive Telegram bot with AI agent integration and reminder management system.
 
 ## Features
 
-- 🤖 AI-powered chat via Ollama/llama3.1
-- 📅 Reminder system with SQLite storage
-- 🔄 Asynchronous HTTP with session pooling
-- ⚡ FastAPI backend
-- 📱 Telegram bot integration
+- **AI Agent Integration**: Powered by Ollama LLM for intelligent conversations
+- **Reminder Management**: Full CRUD operations for reminders with natural language processing
+- **Multi-modal Processing**: Handles text, voice, and image inputs
+- **Modular Architecture**: Separate processors for different content types
+- **Comprehensive Logging**: Detailed logging for all operations
+- **Bilingual Support**: English and Russian documentation
+
+## Project Structure
+
+```
+├── agent/              # AI agent core and tools
+│   ├── core.py        # Main agent orchestration
+│   ├── llm.py         # LLM integration
+│   └── tools/         # AI tools for reminder operations
+├── api/               # FastAPI backend server
+│   └── main.py       # API endpoints
+├── bot/               # Telegram bot components
+│   ├── bot.py         # Main bot entry point
+│   ├── command_handler.py  # Bot commands
+│   ├── text_processor.py   # Text message processing
+│   ├── audio_processor.py  # Voice message processing
+│   └── image_processor.py  # Image processing
+├── services/          # Core services
+│   ├── reminders.py   # Reminder database operations
+│   └── logger.py      # Logging configuration
+└── requirements.txt   # Python dependencies
+```
+
+## Setup
+
+1. **Install Dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Environment Configuration**:
+   Create a `.env` file with:
+   ```
+   TELEGRAM_BOT_TOKEN=your_bot_token_here
+   OLLAMA_BASE_URL=http://localhost:11434
+   OLLAMA_MODEL=llama3.2:3b
+   ```
+
+3. **Start Ollama Service**:
+   Ensure Ollama is running with the specified model.
+
+## Running the Application
+
+### Option 1: Run Both Services (Recommended)
+
+Use the launcher script to start both services:
+
+```bash
+python start.py
+```
+
+### Option 2: Run Services Separately
+
+Start the API server and bot separately:
+
+**Terminal 1 - API Server:**
+```bash
+python api/main.py
+```
+
+**Terminal 2 - Telegram Bot:**
+```bash
+python bot/bot.py
+```
+
+### Option 3: Using Uvicorn (API Server)
+
+```bash
+uvicorn api.main:app --reload --host 0.0.0.0 --port 8001
+```
 
 ## Bot Commands
 
+- `/start` - Initialize the bot
+- `/help` - Show help information
+- `/add <reminder>` - Add a new reminder
+- `/reminders` - List all active reminders
+- `/set <id> <new_text>` - Update reminder text
+- `/del <id>` - Delete a reminder
+- `/deactivate <id>` - Deactivate a reminder
+
+## AI Agent Features
+
+The bot includes an intelligent AI agent that can:
+- Understand natural language requests for reminder operations
+- Perform database operations through tool-based interactions
+- Provide contextual responses
+- Handle complex queries and multi-step operations
+
+## API Endpoints
+
+- `POST /run` - Process user input through the AI agent
+  - Body: `{"user_id": "string", "text": "string"}`
+  - Response: `{"answer": "string"}`
+
+## Logging
+
+All operations are logged to:
+- Message logs: `logs/messages.log`
+- Database operations: `logs/database.log`
+
+## Development
+
+The project uses a modular architecture with separate processors for different media types. Each component can be developed and tested independently.
+
+### Adding New Processors
+
+1. Create a new processor class inheriting from base processor
+2. Implement the `process` method
+3. Register the processor in `bot/bot.py`
+
+### Extending AI Tools
+
+Add new tools in `agent/tools/` following the existing pattern for tool-based LLM interactions.
+
 - `/start` - Initialize bot
 - `/help` - Show help information
-- `/add <name> <period> <time> <day>` - Add reminder
-- `/reminders` - List reminders
-- `/deactivate <name>` or `/del <name>` - Disable or delete reminder
+- `/add <reminder>` - Add a new reminder
+- `/reminders` - List all active reminders
+- `/set <id> <new_text>` - Update reminder text
+- `/del <id>` - Delete a reminder
+- `/deactivate <id>` - Deactivate a reminder
 
 Any other message is processed by the AI agent.
