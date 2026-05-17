@@ -1,16 +1,27 @@
-import aiohttp
+# core/llm/llm.py
+
 import os
+import aiohttp
+
 from dotenv import load_dotenv
 
 
 class GroqLLM:
+    """
+    Stateless LLM client.
+    Не хранит:
+    - history
+    - system prompt
+    - state
+
+    Только отправляет messages в Groq API.
+    """
+
     def __init__(
         self,
         model: str = "llama-3.1-8b-instant",
-        system_prompt: str | None = None,
         temperature: float = 0.2,
-        max_tokens: int = 256,
-        tools: list | None = None
+        max_tokens: int = 512
     ):
         load_dotenv()
 
@@ -20,37 +31,38 @@ class GroqLLM:
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.tools = tools  # optional
 
-        self.history = []
+    async def call(
+        self,
+        messages: list,
+        tools: list | None = None,
+        tool_choice: str = "auto"
+    ) -> dict:
+        """
+        Возвращает:
+        {
+            "type": "text",
+            "content": str
+        }
 
-        if system_prompt:
-            self.history.append({
-                "role": "system",
-                "content": system_prompt
-            })
+        или
 
-    # ---------------- CORE ----------------
+        {
+            "type": "tool_calls",
+            "content": list
+        }
+        """
 
-    async def call(self, prompt: str) -> str:
-        # 1. add user message
-        self.history.append({
-            "role": "user",
-            "content": prompt
-        })
-
-        # 2. build payload
         payload = {
             "model": self.model,
-            "messages": self.history,
+            "messages": messages,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens
         }
 
-        # 3. optional tools
-        if self.tools:
-            payload["tools"] = self.tools
-            payload["tool_choice"] = "auto"
+        if tools:
+            payload["tools"] = tools
+            payload["tool_choice"] = tool_choice
 
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -68,45 +80,39 @@ class GroqLLM:
 
                     data = await response.json()
 
-                    # error handling
+                    # ---------------- ERRORS ----------------
+
                     if "error" in data:
-                        return f"Groq error: {data['error']}"
+                        return {
+                            "type": "error",
+                            "content": data["error"]
+                        }
 
                     if "choices" not in data:
-                        return f"Bad response: {data}"
+                        return {
+                            "type": "error",
+                            "content": f"Bad response: {data}"
+                        }
 
                     message = data["choices"][0]["message"]
 
-                    # 4. tool calling case
+                    # ---------------- TOOL CALLS ----------------
+
                     if "tool_calls" in message:
-                        self.history.append({
-                            "role": "assistant",
-                            "content": None,
-                            "tool_calls": message["tool_calls"]
-                        })
+                        return {
+                            "type": "tool_calls",
+                            "content": message["tool_calls"]
+                        }
 
-                        return message["tool_calls"]
+                    # ---------------- TEXT ----------------
 
-                    # 5. normal text response
-                    answer = message["content"].strip()
-
-                    self.history.append({
-                        "role": "assistant",
-                        "content": answer
-                    })
-
-                    return answer
+                    return {
+                        "type": "text",
+                        "content": message["content"].strip()
+                    }
 
         except Exception as e:
-            return f"LLM error: {str(e)}"
-
-    # ---------------- UTIL ----------------
-
-    def clear_history(self):
-        self.history = []
-
-    def set_system_prompt(self, prompt: str):
-        self.history = [{
-            "role": "system",
-            "content": prompt
-        }]
+            return {
+                "type": "error",
+                "content": str(e)
+            }

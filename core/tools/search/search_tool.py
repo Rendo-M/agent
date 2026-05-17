@@ -1,11 +1,14 @@
 # search_tool.py
+import os
 from tavily import AsyncTavilyClient
+
 
 class TavilySearchTool:
     """Поисковый инструмент на основе Tavily API (асинхронный)."""
 
-    def __init__(self, api_key: str):
-        self.client = AsyncTavilyClient(api_key=api_key)
+    def __init__(self):
+        self.api_key = os.getenv("TAVILY_API_KEY")
+        self.client = AsyncTavilyClient(api_key=self.api_key)
 
     async def search(self, query: str, max_results: int = 5) -> str:
         """
