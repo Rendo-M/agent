@@ -4,8 +4,8 @@ import json
 from dataclasses import dataclass, field
 from typing import Any
 
-from core.agents.registry import AgentRegistry
-from core.llm.base import BaseLLM
+from registry import AgentRegistry
+from core.llm import GroqLLM
 
 
 SUPERVISOR_PROMPT = """
@@ -72,7 +72,7 @@ class Orchestrator:
 
     def __init__(
         self,
-        llm: BaseLLM,
+        llm: GroqLLM,
         registry: AgentRegistry,
         max_iterations: int = 5,
     ) -> None:

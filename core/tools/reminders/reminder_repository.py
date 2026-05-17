@@ -69,8 +69,8 @@ class ReminderRepository:
         kind: str,
         day: int,
         month: int,
-        time_start: str,
-        time_end: str,
+        time_start: int,
+        time_end: int,
         only_active: bool = True
     ) -> List[Dict[str, Any]]:
         """
@@ -79,7 +79,7 @@ class ReminderRepository:
         Search reminders by trigger time parameters.
         """
 
-        rows = self.db.search_triggers(
+        rows = self.db.timesearch_reminders(
             kind=kind,
             day=day,
             month=month,
